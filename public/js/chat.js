@@ -1,8 +1,8 @@
 let socket = io();
 
 
-function scrollToBottom(){
-    let messages=jQuery('#messages');
+function scrollToBottom() {
+    let messages = jQuery('#messages');
     let newMessage = messages.children('li:last-child');
     let clientHeight = messages.prop('clientHeight');
     let scrollTop = messages.prop('scrollTop');
@@ -10,17 +10,34 @@ function scrollToBottom(){
     let newMessageHeight = newMessage.innerHeight();
     let lastMessageHeight = newMessage.prev().innerHeight();
 
-    if (clientHeight+scrollTop+newMessageHeight+lastMessageHeight >= scrollHeight){
+    if (clientHeight + scrollTop + newMessageHeight + lastMessageHeight >= scrollHeight) {
         messages.scrollTop(scrollHeight);
     }
 }
 
 socket.on('connect', () => {
-    console.log('Connected to server !');
+    let params = jQuery.deparam(window.location.search);
+
+    socket.emit('join', params, (err) => {
+        if (err) {
+            alert(err);
+            window.location.href = '/';
+        } else {
+            console.log('No error');
+        }
+    });
 });
 
 socket.on('disconnect', () => {
     console.log('Disconnected from server !');
+});
+
+socket.on('updateUserList', (users) => {
+    let ol = jQuery('<ol></ol>');
+    users.forEach((user) => {
+        ol.append(jQuery('<li></li>').text(user));
+    });
+    jQuery('#users').html(ol);
 });
 
 socket.on('newMessage', (message) => {
@@ -47,20 +64,12 @@ socket.on('newLocationMessage', (message) => {
     scrollToBottom();
 });
 
-socket.emit('createMessage', {
-    from: "Frank",
-    text: "Hi"
-}, (data) => {
-    console.log(data);
-});
-
 jQuery('#message-form').on('submit', (e) => {
     e.preventDefault();
 
     let messageTexbox = jQuery('[name=message]');
 
     socket.emit('createMessage', {
-        from: 'User',
         text: messageTexbox.val()
     }, () => {
         messageTexbox.val('');
